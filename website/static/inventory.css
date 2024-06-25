@@ -51,15 +51,68 @@ body {
     margin: 20px;
 }
 
+.container {
+    width: 100%; 
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px; 
+}
+
+.scrollable-box {
+    max-height: 400px; 
+    overflow-y: auto; 
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px; 
+}
+
+.table {
+    width: 100%; 
+    table-layout: fixed; 
+}
+
+
+
 .invtable {
     width: 100%;
     border-collapse: collapse;
 }
 
+.info-bar {
+    font-weight: 700;
+    color: black;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.merge-row {
+    margin-top: 30px;
+    grid-column: span 2;
+    text-align: right;
+    white-space: nowrap; 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    align-items: flex-end;
+}
+
+.merge-rows {
+    grid-column: span 3;
+    flex-direction: column;
+}
+
+
 .wrapper {
     display: grid;
     grid-template-columns: 400px 400px 145px 145px 145px;
-    grid-template-rows: 150px 60px;
+    grid-template-rows: 150px 60px 60px 100px;
     gap: 40px;
     background: #FFFFFF;
     color: #ff9c03;

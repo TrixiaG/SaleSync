@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaleSync Inventory</title>
+    <link rel="stylesheet" href="../static/inventory.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+          integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+          crossorigin="anonymous"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+
+</head>
+
+<body>
+    <div id="flash-messages">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="row fixed-top" style="z-index: 1000;">
+            <div class="col-md-12">
+              {% for category, message in messages %}
+                  <div class="alert {% if category == 'error' %}alert-danger{% else %}alert-success{% endif %} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                      <span aria-hidden="true">&times;</span>
+                    </button>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+        {% endwith %}
+    </div>
+<div class="container">
+    {% include 'base.html'%}
+
+    <form method="POST">
+        <div class="wrapper" style="min-height: 800px;">
+        
+            <div>
+                <span class="a1 ml-2">CASHIER OPS</span>
+            </div>
+            <div style="    text-align: right; padding-left: 64%; ">   
+                <button class="btn btn-block btnNTxn"  id="btnNTxn"
+                style="align-self : right;" 
+                type="button">New Transaction</button>
+            </div>
+            <div>
+                <button type="btnCTrxn" class="btn btn-block btnCTrxn">Complete Transaction</button>
+
+            </div>
+
+            <div>   
+                <button type="btnReset" class="btn btn-block btnReset">Reset</button>
+
+            </div>  
+            <div> 
+                <button type="btnReceipt" class="btn btn-block btnReceipt" onclick="return false;">Generate Receipt</button>
+
+            </div>
+            <div class="input-box">
+                <label>PRODUCT TYPE</label>
+                <input type="text" id="prodType" name="prodType">
+            </div>
+
+            <div class="input-box">
+                <label>PRODUCT CODE</label>
+                <input type="text" id="prodCode" name="prodCode">
+            </div>
+
+            <div class="merge-rows"></div>
+                <div class="input-box">
+                    <label>PRODUCT NAME</label>
+                    <input type="text" id="prodName" name="prodName">
+                </div>
+                <div class="input-box">
+                    <label>QUANTITY</label>
+                    <input type="number" id="prodStock" name="prodStock">
+                </div>
+                <div></div>
+                <div></div>
+                <div></div>
+                <div>
+                    <button type="button" id="btnAddProd" class="btn btn-block btnAddProd" style="float: right;" onclick="addProductToTransaction()">Add Product</button>
+                </div>
+                <div>
+                    <button type="btnRemoveProd" class="btn btn-block btnAddProd" style="float: left;" data-product-id="{{ item.product_id }}">Remove Product</button>
+                </div>  
+            </form>
+                <div class="merge-rows">
+
+                <form method="GET">
+                    <div class="container" style="display: flex; align-items: center; justify-content: center;">
+                        <div class="scrollable-box">
+                            <span style="font-weight: 700; color: black; display: flex; align-items: center; padding-left: 30%; font-size: 15px">THE CRAZY FISH MAN</span>
+                            <span style="font-weight: 700; color: black; display: flex; align-items: center; padding-left: 35%; font-size: 15px" id="transactionNumber">Transaction No. {{transaction_id}}</span>
+                            <p class="info-bar">
+                                <span style="font-weight: 700; color: black; display: flex; align-items: center; font-size: 12px">Staff: {{CashierStaff}} </span>
+                                <span style="font-weight: 700; color: black; display: flex; align-items: center; font-size: 12px">Date: {{date}} </span>
+                            </p>
+        
+                            <table class="table table-striped usertable">
+                                <thead>
+                                    <tr>
+                                        <th scope="col" style="font-size: 12px; ">PRODUCT</th>
+                                        <th scope="col" style="font-size: 12px; text-align: center; vertical-align: middle; "> QUANTITY</th>
+                                        <th scope="col" style="font-size: 12px; text-align: center; vertical-align: middle;">AMOUNT</th>
+                                        <th scope="col" style="font-size: 12px; text-align: center; vertical-align: middle;">SUBTOTAL</th>
+
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td>{{ item.product_id }}</td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td>{{ item.quantity * item.unit_price }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+        
+                            <span style="font-weight: 700; color: black; padding-right: 105px; float: right; font-size: 20px; margin-top: 20px;" id="total_amount">Total: P{{total_amount}}</span>
+                        </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div></div>
+        </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+var currentTransactionId = null;
+
+function startNewTransaction() {
+    $.ajax({
+        type: 'POST',
+        url: '/create-transaction',
+        contentType: 'application/json',
+        success: function(response) {
+            currentTransactionId = response.transaction_id;
+            $('#transactionNumber').text('Transaction No. ' + response.transaction_id);
+            $('#totalAmount').text('0.00');
+            alert('New transaction started successfully');
+            updateTransactionDetails();
+        },
+        error: function(xhr, status, error) {
+            alert('Error starting new transaction: ' + error);
+        }
+    });
+}
+
+function addProductToTransaction() {
+    var productCode = $('#prodCode').val();
+    var quantity = $('#prodStock').val();
+
+    if (!productCode || !quantity) {
+        alert('Please enter both product code and quantity.');
+        return;
+    }
+
+    if (!currentTransactionId) {
+        alert('Please start a new transaction first.');
+        return;
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '/add-product-to-transaction',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            transaction_id: currentTransactionId,
+            product_id: productCode,
+            quantity: parseInt(quantity)
+        }),
+        success: function(response) {
+            alert('Product added successfully');
+            updateTransactionDetails();
+        },
+        error: function(xhr, status, error) {
+            alert('Error adding product: ' + error);
+        }
+    });
+}
+
+function resetTransaction() {
+    if (!currentTransactionId) {
+        alert('No current transaction to reset.');
+        return;
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '/reset-transaction',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            transaction_id: currentTransactionId
+        }),
+        success: function(response) {
+            alert('Transaction reset successfully');
+            currentTransactionId = null;
+            $('#transactionNumber').text('Transaction No. ');
+            $('#totalAmount').text('Total: P0.00');
+            updateTransactionDetails();
+        },
+        error: function(xhr, status, error) {
+            alert('Error resetting transaction: ' + error);
+        }
+    });
+}
+// Assuming you have a button that triggers this function
+$('#btnReset').click(function() {
+    var transactionId = currentTransactionId; // Ensure this variable is defined
+    if (transactionId) {
+        resetTransaction(transactionId);
+    } else {
+        alert('No current transaction to reset.');
+    }
+});
+
+function completeTransaction() {
+                if (!currentTransactionId) {
+                    alert('No current transaction to complete.');
+                    return;
+                }
+
+                $.ajax({
+                    type: 'POST',
+                    url: '/complete-transaction',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        transaction_id: currentTransactionId
+                    }),
+                    success: function(response) {
+                        alert('Transaction completed successfully');
+                        resetTransaction();
+                    },
+                    error: function(xhr, status, error) {
+                        alert('Error completing transaction: ' + error);
+                    }
+                });
+            }
+
+
+function updateTransactionDetails() {
+    if (!currentTransactionId) {
+        $('.usertable tbody').empty();
+        $('#totalAmount').text('Total: P0.00');
+        return;
+    }
+
+    $.ajax({
+        type: 'GET',
+        url: '/get-transaction-details/',
+        data: { transaction_id: currentTransactionId },
+        success: function(response) {
+            $('#transactionNumber').text(response.transaction_id);
+            $('#totalAmount').text(response.total_amount);
+            var itemsHtml = '';
+            response.items.forEach(function(item) {
+                itemsHtml += `
+                    <tr>
+                        <td style="font-size: 10px; ">${item.product_id}</td>
+                        <td style="font-size: 10px; text-align: center; vertical-align: middle;" >${item.quantity}</td>
+                        <td style="font-size: 10px; text-align: center; vertical-align: middle;" >${item.unit_price}</td>
+                        <td style="font-size: 10px; text-align: center; vertical-align: middle;" >${item.total_price}</td>
+                    </tr>
+                `;
+            });
+            $('.usertable tbody').html(itemsHtml);
+        },
+        error: function(xhr, status, error) {
+            alert('Error fetching transaction details: ' + error);
+        }
+    });
+}
+
+$(document).ready(function() {
+    $('#btnNTxn').click(function() {
+        startNewTransaction();
+    });
+    $('#btnReset').click(resetTransaction);
+    $('#btnCTrxn').click(completeTransaction);
+
+
+});
+
+$('.remove-product-btn').click(function(event) {
+        event.preventDefault();
+        
+        var product_id = $(this).data('product-id');  // Assuming data-product-id attribute on the button
+
+        $.ajax({
+            type: 'POST',
+            url: '/remove-product/' + product_id,
+            success: function(response) {
+                console.log('Product removed successfully');
+                window.location.reload();  // Reload the page or update the UI after successful removal
+            },
+            error: function(error) {
+                console.error('Error removing product:', error);
+                alert('Failed to remove product. Please try again.');
+            }
+        });
+    });
+
+
+</script>
+
+
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+        integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+        crossorigin="anonymous"></script>
+
+
+</body>
+</html>

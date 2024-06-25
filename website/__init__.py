@@ -32,7 +32,7 @@ def create_app():
     from .inventory import inventory
     from .transactions import transactions
     from .usermanagement import usermanagement
-    from .models import User, prodInventory
+    from .models import User, prodInventory, Transaction, IndivTransaction
 
     app.register_blueprint(views, url_prefix='/')
     app.register_blueprint(login, url_prefix='/')

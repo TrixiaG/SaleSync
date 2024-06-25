@@ -40,10 +40,7 @@
 
     <form method="POST">
         <div class="wrapper">
-            <a>Hello</a>
-        </div>
-        <div class="wrapper">
-            <div class="container mb-4">
+            <div class="container mb-4" style="border: 0cm;">
                 <i class='bx bx-package'></i>
                 <a class="a1 ml-2">INVENTORY</a>
             </div>
@@ -60,20 +57,20 @@
             </div>
             <div class="input-box">
                 <label>PRODUCT CODE</label>
-                <input type="text" id="prodCode" name="prodCode" oninput="fetchProductDetailsByCode">
+                <input type="text" id="prodCode" name="prodCode" oninput="fetchProductDetailsByCode(this.value)">
             </div>
             <div>
-                <button type="btnSearch" class="btn btn-block btnSearch">Search</button>
+                <button type="btnSearch" class="btn btn-block btnSearch" onclick="searchProducts()">Search</button>
             </div>
             <div>
                 <button type="btnPrint" class="btn btn-block btnPrint">Print</button>
             </div>
             <div>
-                <button type="btnUpdate" class="btn btn-block btnUpdate" onclick="updateProduct()">Update</button>
+                <button type="btnUpdate" class="btn btn-block btnUpdate" onclick="updateProduct()" oninput="fetchProductDetailsByCode()">Update</button>
             </div>
             <div class="input-box">
                 <label>PRODUCT NAME</label>
-                <input type="text" id="prodName" name="prodName" oninput="fetchProductDetails('name')" list="productNameList">
+                <input type="text" id="prodName" name="prodName" oninput="fetchProductDetails(this.value)" list="productNameList">
                 <datalist id="productNameList"></datalist>
             </div>
             <div class="input-box">
@@ -89,6 +86,10 @@
             <div>
                 <button type="btnDelete" class="btn btn-block btnDelete" onclick="deleteProduct()">Delete</button>
             </div>
+            <div class="input-box">
+                <label>Price</label>
+                <input type="number" id="prodPrice" name="prodPrice">
+            </div>
         </div>
     </form>
     <form method="GET">
@@ -101,6 +102,8 @@
                             <th scope="col">Product Code</th>
                             <th scope="col">Product Name</th>
                             <th scope="col">Stocks</th>
+                            <th scope="col">Price</th>
+
                         </tr>
                     </thead>
                     <tbody>
@@ -110,6 +113,7 @@
                             <td>{{ product.pcode }}</td>
                             <td>{{ product.pname }}</td>
                             <td>{{ product.pstock }}</td>
+                            <td>{{ product.pprice }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -117,6 +121,8 @@
             </div>
         </div>
     </form>
+
+
 </div>
 
 
@@ -125,10 +131,63 @@
         crossorigin="anonymous"></script>
 
 <script>
+
     $(document).ready(function() {
+    fetchProductTypes();  
+    fetchProductNames(); 
+
+    // Event listeners for input fields
+    $('#prodCode').on('input', function() {
+        fetchProductDetailsByCode($(this).val());
+    });
+
+    $('#prodName').on('input', function() {
+        fetchProductDetailsByName($(this).val());
+    });
+});
+
+function searchProducts() {
+    var prodType = $('#prodType').val().trim(); 
+    var prodCode = $('#prodCode').val().trim();
+    var prodName = $('#prodName').val().trim();
+
+    $.ajax({
+        url: '/inventory/search',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            'prodType': prodType,
+            'prodCode': prodCode,
+            'prodName': prodName
+        }),
+        success: function(response) {
+            if (response.status === 'success') {
+                var products = response.products;
+                var tbody = $('.prodtable tbody');
+                tbody.empty(); 
+
+                products.forEach(function(product) {
+                    var row = '<tr>' +
+                        '<td>' + product.ptype + '</td>' +
+                        '<td>' + product.pcode + '</td>' +
+                        '<td>' + product.pname + '</td>' +
+                        '<td>' + product.pstock + '</td>' +
+                        '</tr>';
+                    tbody.append(row);
+                });
+            } else {
+                alert('No products found.');
+            }
+        },
+        error: function(error) {
+            console.error('Error fetching search results:', error);
+        }
+    });
+}
+
+$(document).ready(function() {
     fetchProductTypes();
     fetchProductNames();
-
 
     $('#prodCode').on('input', function() {
         var prodCode = $(this).val();
@@ -144,131 +203,115 @@
         event.preventDefault();
         AddorReduceStocks();
     });
+});
 
-
-    });
- 
-    function fetchProductDetailsByCode(prodCode) {
-        if (prodCode !== '') {
-            $.ajax({
-                url: '/inventory/search_by_code',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({'prodCode': prodCode}),
-                success: function(response) {
-                    console.log('Response:', response); 
-                    if (response.status === 'success') {
-                        $('#prodType').val(response.prodType);
-                        $('#prodName').val(response.prodName);
-                        $('#prodStock').val(response.prodStock);
-                        $('#prodCode').val(response.prodCode);
-                    } else {
-                        alert('Product code not found.');
-                    }
-
-                
-                },
-                error: function(error) {
-                    console.error('Error fetching product details:', error);
+function fetchProductDetailsByCode(prodCode) {
+    if (prodCode !== '') {
+        $.ajax({
+            url: '/inventory/search_by_code',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({'prodCode': prodCode}),
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#prodType').val(response.prodType);
+                    $('#prodName').val(response.prodName);
+                    $('#prodStock').val(response.prodStock);
+                } else {
+                    alert('Product code not found.');
                 }
-            });
-        }
-    }
-
-    function fetchProductDetailsByName(prodName) {
-            if (prodName !== '') {
-                $.ajax({
-                    url: '/inventory/search_by_name',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({'prodName': prodName}),
-                    success: function(response) {
-                        if (response.status === 'success') {
-                            $('#prodType').val(response.prodType);
-                            $('#prodCode').val(response.prodCode);
-                            $('#prodStock').val(response.prodStock);
-                            $('#prodName').val(response.prodName);
-                        } else {
-                            alert('Product name not found.', 'error');
-                        }
-                    },
-                    error: function(error) {
-                        console.error('Error fetching product details:', error);
-                    }
-                });
+            },
+            error: function(error) {
+                console.error('Error fetching product details:', error);
             }
-        }
+        });
+    }
+}
 
-    function deleteProduct() {
+function fetchProductDetailsByName(prodName) {
+    if (prodName !== '') {
+        $.ajax({
+            url: '/inventory/search_by_name',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({'prodName': prodName}),
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('#prodType').val(response.prodType);
+                    $('#prodCode').val(response.prodCode);
+                    $('#prodStock').val(response.prodStock);
+                } else {
+                    alert('Product name not found.');
+                }
+            },
+            error: function(error) {
+                console.error('Error fetching product details:', error);
+            }
+        });
+    }
+}
+
+function deleteProduct() {
     var prodCode = $('#prodCode').val();
 
-        if (prodCode !== '') {
-           $.ajax({
-                url: '/inventory/delete_product',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ prodCode: 'someProductCode' }),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        alert(response.message);
-                        // Remove the product from the UI
-                        $('#product-row-' + 'someProductCode').remove(); // Adjust the selector based on your HTML structure
-                    } else {
-                        alert(response.message);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error deleting product:', error);
-                    alert('An error occurred while deleting the product.');
+    if (prodCode !== '') {
+        $.ajax({
+            url: '/inventory/delete_product',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({'prodCode': prodCode}),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert(response.message);
+                    window.location.reload();
+                } else {
+                    alert(response.message);
                 }
-            });
-        } else {
-            displayFlashMessage('Please enter a product code to delete.', 'error');
-        }
-        }
-
-    function displayFlashMessage(message, category) {
-    var flashMessageDiv = $('<div class="alert alert-' + (category === 'error' ? 'danger' : 'success') + ' alert-dismissible fade show" role="alert">' +
-                            message +
-                            '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
-                            '<span aria-hidden="true">&times;</span>' +
-                            '</button>' +
-                            '</div>');
-    $('#flash-messages').append(flashMessageDiv);
+            },
+            error: function(error) {
+                console.error('Error deleting product:', error);
+                alert('An error occurred while deleting the product.');
+            }
+        });
+    } else {
+        alert('Please enter a product code to delete.');
     }
+}
 
-    function AddorReduceStocks() {
-        var prodCode = $('#prodCode').val();
-        var additionalStock = $('#prodStock').val();
+function AddorReduceStocks() {
+    var prodCode = $('#prodCode').val();
+    var additionalStock = $('#prodStock').val();
+    var prodPrice = $('#prodPrice').val();
 
-        if (prodCode !== '' && additionalStock !== '') {
-            $.ajax({
-                url: '/inventory/addreducestocks',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ 
-                    prodCode: prodCode,
-                    additionalStock: additionalStock 
-                }),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        alert('Stocks added successfully.');
-                        window.location.reload();
-                    } else {
-                        alert('Error adding stocks: ' + response.message);
-                    }
-                },
-                error: function(error) {
-                    console.error('Error adding stocks:', error);
-                    alert('An error occurred while adding stocks.');
+    if (prodCode !== '' && additionalStock !== '') {
+        $.ajax({
+            url: '/inventory/addreducestocks',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                'prodCode': prodCode,
+                'additionalStock': additionalStock,
+                'prodPrice': prodPrice
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Stocks updated successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Error updating stocks: ' + response.message);
                 }
-            });
-        } else {
-            alert('Please enter a product code and the amount of stock to add.');
-        }
+            },
+            error: function(error) {
+                console.error('Error updating stocks:', error);
+                alert('An error occurred while updating stocks.');
+            }
+        });
+    } else {
+        alert('Please enter a product code and the amount of stock to update.');
     }
+}
 
-    function fetchProductTypes() {
+function fetchProductTypes() {
     $.ajax({
         url: '/inventory/get_product_types',
         type: 'GET',
@@ -288,14 +331,16 @@
             console.error('Error fetching product types:', error);
         }
     });
-    }
+}
 
-    function fetchProductNames() {
+function fetchProductNames() {
+    var prodType = $('#prodType').val(); // Ensure prodType is correctly fetched from your input field
+
     $.ajax({
         url: '/inventory/get_product_names',
-        type: 'POST',  
+        type: 'POST',
         contentType: 'application/json',
-        data: JSON.stringify({ 'prodType': $('#prodType').val() }),  // Send selected product type
+        data: JSON.stringify({'prodType': prodType}),
         success: function(response) {
             if (response.status === 'success') {
                 var productNames = response.productNames;
@@ -314,65 +359,80 @@
     });
 }
 
+function updateProduct() {
+    var prodCode = $('#prodCode').val();
+    var prodType = $('#prodType').val();
+    var prodName = $('#prodName').val();
+    var prodStock = $('#prodStock').val();
 
-    function updateProduct() {
-        var prodCode = $('#prodCode').val();
-        var prodType = $('#prodType').val();
-        var prodName = $('#prodName').val();
-        var prodStock = $('#prodStock').val();
-
-        if (prodCode !== '') {
-            $.ajax({
-                url: '/inventory/update_product',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    'prodCode': prodCode,
-                    'prodType': prodType,
-                    'prodName': prodName,
-                    'prodStock': prodStock
-                }),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        alert('Product updated successfully.');
-                        window.location.reload();
-                    } else {
-                        alert('Error updating product: ' + response.message);
-                    }
-                },
-                error: function(error) {
-                    console.error('Error updating product:', error);
-                    alert('Error updating product.');
+    if (prodCode !== '') {
+        $.ajax({
+            url: '/inventory/update_product',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                'prodCode': prodCode,
+                'prodType': prodType,
+                'prodName': prodName,
+                'prodStock': prodStock
+            }),
+            success: function(response) {
+                if (response.status === 'success') {
+                    alert('Product updated successfully.');
+                    window.location.reload();
+                } else {
+                    alert('Error updating product: ' + response.message);
                 }
-            });
-        } else if (prodName !== '') {
-            $.ajax({
-                url: '/inventory/update_product',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    'prodCode': prodCode,
-                    'prodType': prodType,
-                    'prodName': prodName,
-                    'prodStock': prodStock
-                }),
-                success: function(response) {
-                    if (response.status === 'success') {
-                        alert('Product updated successfully.');
-                        window.location.reload();
-                    } else {
-                        alert('Error updating product: ' + response.message);
-                    }
-                },
-                error: function(error) {
-                    console.error('Error updating product:', error);
-                    alert('Error updating product.');
-                }
-            });
-        } else {
-            alert('Please enter a product code to update.');
-        }
+            },
+            error: function(error) {
+                console.error('Error updating product:', error);
+                alert('Error updating product.');
+            }
+        });
+    } else {
+        alert('Please enter a product code to update.');
     }
+}
+
+function searchProducts() {
+    var prodType = $('#prodType').val();
+    var prodCode = $('#prodCode').val();
+    var prodName = $('#prodName').val();
+
+    $.ajax({
+        url: '/inventory/search',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            'prodType': prodType,
+            'prodCode': prodCode,
+            'prodName': prodName
+        }),
+        success: function(response) {
+            if (response.status === 'success') {
+                var products = response.products;
+                var tbody = $('.prodtable tbody');
+                tbody.empty();
+                products.forEach(function(product) {
+                    var row = '<tr>' +
+                        '<td>' + product.ptype + '</td>' +
+                        '<td>' + product.pcode + '</td>' +
+                        '<td>' + product.pname + '</td>' +
+                        '<td>' + product.pstock + '</td>' +
+                        '</tr>';
+                    tbody.append(row);
+                });
+            } else {
+                alert('No products found.');
+            }
+        },
+        error: function(error) {
+            console.error('Error fetching search results:', error);
+        }
+    });
+}
+
+
 </script>
 
 </body>

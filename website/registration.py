@@ -91,7 +91,7 @@ def userRegistration():
         elif not bdaystr:
             flash('Please select birthday.', category='error')
         else:
-            new_user = User(eid=eid, email=email, first_name=first_name, last_name=last_name, password=generate_password_hash(pw1, method='pbkdf2:sha256'), bday=bday, access='Staff')
+            new_user = User(eid=eid, email=email, first_name=first_name, last_name=last_name, password=generate_password_hash(pw1, method='pbkdf2:sha256'), bday=bday, access='Pending')
             db.session.add(new_user)
             db.session.commit()        
             
