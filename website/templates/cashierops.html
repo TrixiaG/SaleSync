@@ -38,7 +38,7 @@
         {% endwith %}
     </div>
 <div class="container">
-    {% include 'base.html'%}
+    <!--{% include 'base.html'%}-->
 
     <form method="POST">
         <div class="wrapper" style="min-height: 800px;">
@@ -65,8 +65,10 @@
 
             </div>
             <div class="input-box">
-                <label>PRODUCT TYPE</label>
-                <input type="text" id="prodType" name="prodType">
+                <label for="prodTypeDropdown">PRODUCT TYPE</label>
+                <input type="text" id="prodType" name="prodType" list="prodTypeDropdown">
+                <datalist id="prodTypeDropdown">
+                </datalist>
             </div>
 
             <div class="input-box">
@@ -77,7 +79,10 @@
             <div class="merge-rows"></div>
                 <div class="input-box">
                     <label>PRODUCT NAME</label>
-                    <input type="text" id="prodName" name="prodName">
+                    <input type="text" id="prodName" name="prodName" list="prodNameDropdown">
+                    <datalist id="prodNameDropdown">
+                    </datalist>
+
                 </div>
                 <div class="input-box">
                     <label>QUANTITY</label>
@@ -90,14 +95,12 @@
                     <button type="button" id="btnAddProd" class="btn btn-block btnAddProd" style="float: right;" onclick="addProductToTransaction()">Add Product</button>
                 </div>
                 <div>
-                    <button type="btnRemoveProd" class="btn btn-block btnAddProd" style="float: left;" data-product-id="{{ item.product_id }}">Remove Product</button>
                 </div>  
             </form>
                 <div class="merge-rows">
-
                 <form method="GET">
-                    <div class="container" style="display: flex; align-items: center; justify-content: center;">
-                        <div class="scrollable-box">
+                    <div class="container" style="display: flex; align-items: center; justify-content: center; margin-bottom:500px; height: 300px; overflow-y: auto;">
+                        <div class="scrollable-box" style="height: 400px;">
                             <span style="font-weight: 700; color: black; display: flex; align-items: center; padding-left: 30%; font-size: 15px">THE CRAZY FISH MAN</span>
                             <span style="font-weight: 700; color: black; display: flex; align-items: center; padding-left: 35%; font-size: 15px" id="transactionNumber">Transaction No. {{transaction_id}}</span>
                             <p class="info-bar">
@@ -112,6 +115,7 @@
                                         <th scope="col" style="font-size: 12px; text-align: center; vertical-align: middle; "> QUANTITY</th>
                                         <th scope="col" style="font-size: 12px; text-align: center; vertical-align: middle;">AMOUNT</th>
                                         <th scope="col" style="font-size: 12px; text-align: center; vertical-align: middle;">SUBTOTAL</th>
+                                        <th scope="col" style="font-size: 12px; text-align: center; vertical-align: middle;">ACTIONS</th>
 
                                     </tr>
                                 </thead>
@@ -121,12 +125,14 @@
                                         <td>{{ item.product_id }}</td>
                                         <td>{{ item.quantity }}</td>
                                         <td>{{ item.quantity * item.unit_price }}</td>
+                                        <td><button type="button" class="btn btn-block btnRemoveProd" data-product-id="{{ item.product_id }}" onclick="removeProductFromTransaction('{{ item.product_id }}')">Remove Product</button>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
         
-                            <span style="font-weight: 700; color: black; padding-right: 105px; float: right; font-size: 20px; margin-top: 20px;" id="total_amount">Total: P{{total_amount}}</span>
+                            <span style="font-weight: 700; color: black; padding-right: 105px; float: right; font-size: 20px; margin-top: 20px;" id="totalAmount">Total: P{{total_amount}}</span>
                         </div>
                         </div>
                     </div>
@@ -177,24 +183,108 @@ function addProductToTransaction() {
         return;
     }
 
+    // Check if the product already exists in the transaction
+    var existingItem = $('.usertable tbody').find('tr[data-product-id="' + productCode + '"]');
+
+    if (existingItem.length > 0) {
+        // Update existing product quantity and subtotal
+        var currentQuantity = parseInt(existingItem.find('.quantity').text());
+        var newQuantity = currentQuantity + parseInt(quantity);
+        existingItem.find('.quantity').text(newQuantity);
+
+        // Update total amount in the UI
+        updateTotalAmount();
+        
+        // Update product in the backend
+        updateProductInTransaction(productCode, newQuantity);
+    } else {
+        // Add new product to the transaction
+        $.ajax({
+            type: 'POST',
+            url: '/add-product-to-transaction',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                transaction_id: currentTransactionId,
+                product_id: productCode,
+                quantity: parseInt(quantity)
+            }),
+            success: function(response) {
+                alert('Product added successfully');
+                updateTransactionDetails();
+            },
+            error: function(xhr, status, error) {
+                alert('Error adding product: ' + error);
+            }
+        });
+    }
+}
+
+function updateProductInTransaction(productCode, quantity) {
     $.ajax({
         type: 'POST',
-        url: '/add-product-to-transaction',
+        url: '/update-product-in-transaction',
         contentType: 'application/json',
         data: JSON.stringify({
             transaction_id: currentTransactionId,
             product_id: productCode,
-            quantity: parseInt(quantity)
+            quantity: quantity
         }),
         success: function(response) {
-            alert('Product added successfully');
+            alert('Product quantity updated successfully');
             updateTransactionDetails();
         },
         error: function(xhr, status, error) {
-            alert('Error adding product: ' + error);
+            alert('Error updating product quantity: ' + error);
         }
     });
 }
+
+function updateTotalAmount() {
+    function updateTotalAmount() {
+    var totalAmount = 0;
+
+    // Iterate through each row in the table
+    $('.usertable tbody tr').each(function() {
+        var quantity = parseInt($(this).find('.quantity').text()); // Assuming you have a class 'quantity' for quantity display
+        var unitPrice = parseFloat($(this).find('.unit-price').text()); // Replace with actual class for unit price
+
+        if (!isNaN(quantity) && !isNaN(unitPrice)) {
+            var subtotal = quantity * unitPrice;
+            totalAmount += subtotal;
+        }
+    });
+
+    // Update the total amount display in your UI
+    $('#totalAmount').text('Total: P' + totalAmount.toFixed(2)); // Adjust based on your currency format
+}
+}
+
+
+function removeProductFromTransaction(productId) {
+    if (!currentTransactionId) {
+        alert('No current transaction to modify.');
+        return;
+    }
+
+    $.ajax({
+        type: 'POST',
+        url: '/remove-product/' + productId,
+        success: function(response) {
+            alert('Product removed successfully');
+            updateTransactionDetails();
+        },
+        error: function(xhr, status, error) {
+            alert('Error removing product: ' + error);
+        }
+    });
+}
+
+
+$(document).on('click', '.remove-product-btn', function(event) {
+    event.preventDefault();
+    var productId = $(this).data('product-id');
+    removeProductFromTransaction(productId);
+});
 
 function resetTransaction() {
     if (!currentTransactionId) {
@@ -212,7 +302,7 @@ function resetTransaction() {
         success: function(response) {
             alert('Transaction reset successfully');
             currentTransactionId = null;
-            $('#transactionNumber').text('Transaction No. ');
+            $('#transactionNumber').text('Transaction No. 1 ' + response.transaction_id);
             $('#totalAmount').text('Total: P0.00');
             updateTransactionDetails();
         },
@@ -267,8 +357,8 @@ function updateTransactionDetails() {
         url: '/get-transaction-details/',
         data: { transaction_id: currentTransactionId },
         success: function(response) {
-            $('#transactionNumber').text(response.transaction_id);
-            $('#totalAmount').text(response.total_amount);
+            $('#transactionNumber').text('Transaction No. ' + response.transaction_id);
+            $('#totalAmount').text('Total: P'+ response.total_amount);
             var itemsHtml = '';
             response.items.forEach(function(item) {
                 itemsHtml += `
@@ -277,7 +367,12 @@ function updateTransactionDetails() {
                         <td style="font-size: 10px; text-align: center; vertical-align: middle;" >${item.quantity}</td>
                         <td style="font-size: 10px; text-align: center; vertical-align: middle;" >${item.unit_price}</td>
                         <td style="font-size: 10px; text-align: center; vertical-align: middle;" >${item.total_price}</td>
-                    </tr>
+                        <td style="font-size: 10px; text-align: center; vertical-align: middle;">
+                            <button type="button" class="btnRemove remove-product-btn" data-product-id="${item.product_id}">
+                                <i class="bx bxs-trash"></i>
+                            </button>
+                        </td>
+                        </tr>
                 `;
             });
             $('.usertable tbody').html(itemsHtml);
@@ -295,7 +390,59 @@ $(document).ready(function() {
     $('#btnReset').click(resetTransaction);
     $('#btnCTrxn').click(completeTransaction);
 
+    $('.usertable tbody').on('click', '.remove-product-btn', function(event) {
+        event.preventDefault();
+        var productId = $(this).data('product-id');
+        removeProductFromTransaction(productId);
+    });
 
+});
+
+$.ajax({
+    type: 'GET',
+    url: '/get-product-types',
+    success: function(response) {
+        var types = response.product_types;
+        var options = '';
+        types.forEach(function(type) {
+            options += '<option value="' + type + '">';
+        });
+        $('#prodTypeDropdown').append(options);
+    },
+    error: function(xhr, status, error) {
+        console.error('Error fetching product types:', error);
+    }
+});
+
+// Handle input event for product type input to populate product names
+$('#prodType').on('input', function() {
+    var selectedType = $(this).val();
+    $('#prodNameDropdown').empty(); // Clear previous options
+
+    // Fetch product names based on selected type
+    $.ajax({
+        type: 'GET',
+        url: '/get-product-names/' + selectedType,
+        success: function(response) {
+            var names = response.product_names;
+            var options = '';
+            names.forEach(function(product) {
+                options += '<option value="' + product.name + '" data-code="' + product.code + '">';
+            });
+            $('#prodNameDropdown').append(options);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching product names:', error);
+        }
+    });
+});
+
+// Autopopulate product code based on selected product name
+$('#prodName').on('input', function() {
+    var selectedName = $(this).val();
+    var option = $('#prodNameDropdown option[value="' + selectedName + '"]');
+    var productCode = option.data('code');
+    $('#prodCode').val(productCode);
 });
 
 $('.remove-product-btn').click(function(event) {

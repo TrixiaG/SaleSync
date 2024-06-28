@@ -25,7 +25,7 @@ def send_otp(email, otp):
         message = f'Subject: TCFM SaleSync OTP\n\nYour OTP is {otp}'
         server.sendmail('your_email@example.com', email, message)
 
-@login.route('/login', methods=['GET', 'POST'])
+@login.route('/', methods=['GET', 'POST'])
 def userLogin():
 
     if request.method == 'POST':

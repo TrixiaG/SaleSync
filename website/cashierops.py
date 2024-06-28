@@ -24,8 +24,31 @@ def get_product_details(productCode):
         return jsonify({
             "pname": product.pname,
             "pprice": str(product.pprice),
-            "ptype": product.ptype  
+            "ptype": product.ptype,
+             "pcode": product.pcode
         }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+#get product types
+@cashierops.route('/get-product-types', methods=['GET'])
+@login_required
+def get_product_types():
+    try:
+        product_types = db.session.query(prodInventory.ptype).distinct().all()
+        types_list = [ptype[0] for ptype in product_types]
+        return jsonify({"product_types": types_list}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# get product names by product types
+@cashierops.route('/get-product-names/<productType>', methods=['GET'])
+@login_required
+def get_product_names(productType):
+    try:
+        products = prodInventory.query.filter_by(ptype=productType).all()
+        names_list = [{"name": product.pname, "code": product.pcode} for product in products]
+        return jsonify({"product_names": names_list}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
@@ -142,26 +165,22 @@ def reset_transaction():
 
 @cashierops.route('/remove-product/<product_id>', methods=['POST'])
 @login_required
-def remove_product():
+def remove_product(product_id):
     try:
-        product_id = request.form.get('product_id')
+        current_transaction = Transaction.query.filter_by(user_eid=current_user.eid).first()
 
-        if product_id:
-            current_transaction = Transaction.query.filter_by(user_eid=current_user.eid).first()
+        if current_transaction:
+            item_to_remove = IndivTransaction.query.filter_by(transaction_id=current_transaction.transaction_id, product_id=product_id).first()
 
-            if current_transaction:
-                item_to_remove = IndivTransaction.query.filter_by(transaction_id=current_transaction.transaction_id, product_id=product_id).first()
-
-                if item_to_remove:
-                    db.session.delete(item_to_remove)
-                    db.session.commit()
-                    return jsonify({'success': True})
-                else:
-                    return jsonify({'error': 'Product not found in your transaction.'}), 400
+            if item_to_remove:
+                db.session.delete(item_to_remove)
+                db.session.commit()
+                return jsonify({'success': True}), 200
             else:
-                return jsonify({'error': 'No active transaction found for the current user.'}), 400
+                return jsonify({'error': 'Product not found in your transaction.'}), 404
         else:
-            return jsonify({'error': 'Product ID not provided.'}), 400
+            return jsonify({'error': 'No active transaction found for the current user.'}), 404
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
